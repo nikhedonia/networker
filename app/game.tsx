@@ -377,7 +377,7 @@ function validateGame(cells: Cell[][]) {
 }
 
 function shuffle<T>(arr: T[]): T[] {
-  return arr.sort(() => Math.random() - 0.5);
+  return arr.toSorted(() => Math.random() - 0.5);
 }
 
 function randomPoint(n:number) {
@@ -386,13 +386,16 @@ function randomPoint(n:number) {
 
 export function generateRandomGame(size: number, inputs: number, outputs = 1) {
   
-  const maze = generate(size,size, true, Math.round(Math.random()*100000) );
+  const maze = generate(size, size, true, Math.round(Math.random()*100000) )
+    .map(row => row.map(c=>({
+      ...c, 
+      edges: +!c.bottom + +!c.left + +!c.right + +!c.top
+    })));
 
   console.log({maze})
   const sinksArray = 
     shuffle(maze
       .flatMap(x => x))
-      .map(x => ({...x, edges: (+x.bottom + +x.left + +x.right + +x.top) }))
       .sort( (a,b) => a.edges - b.edges)
       .slice(0, inputs);
 
@@ -413,10 +416,9 @@ export function generateRandomGame(size: number, inputs: number, outputs = 1) {
   return maze.map( row => row.map(c => {
     const isSink = sinks.has(`${c.x}-${c.y}`);
     const isSource = sources.has(`${c.x}-${c.y}`);
-    const edges = (+c.bottom + +c.left + +c.right + +c.top); 
     let kind = 'P';
 
-    switch (edges) {
+    switch (c.edges) {
       case 1: 
         kind = 'X'; 
         break;
@@ -424,13 +426,14 @@ export function generateRandomGame(size: number, inputs: number, outputs = 1) {
         kind = 'T'
         break;
       case 2:
-        kind = c.left == c.top 
-          ? 'L'
-          : 'I'
+        kind = c.left == c.right
+          ? 'I'
+          : 'L'
         break;
     }
 
     return {
+      cell:c,
       kind,
       sinkOrSource: +isSink * 2 + +isSource, 
       rotation: 0,
@@ -453,7 +456,7 @@ function Grid() {
   
   const [level, setLevel] = useState(5);
 
-  const [game,setGame] = useState(generateGame(level));
+  const [game,setGame] = useState(()=>generateGame(level));
   const [moves, setMoves] = useState(0);
 
   
