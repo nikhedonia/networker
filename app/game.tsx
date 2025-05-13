@@ -467,8 +467,11 @@ function Grid() {
   }, []);
 
   useEffect(()=>{
-    if (game.done) 
+    if (game.done) {
+      setTime(0);
+      setMoves(0);
       setGame(generateGame(level));
+    }
   },[level, game.done])
 
   
