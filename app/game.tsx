@@ -1,5 +1,4 @@
 "use client";
-import dedent from "dedent";
 import { useState } from "react";
 import generate from 'generate-maze';
 
@@ -208,28 +207,6 @@ const CellComponent = (props: Cell) => {
   );
 
 }
-
-const game1 = dedent`
-  LiiXX
-  tiiil
-  lttiX
-  XiliX
-  ltiiX  
-`.split('\n').map(row=> row.split('')) as CellType[][];
-
-
-const game2 = dedent`
-  IXlXtil
-  lttXllX
-  Xlliltl
-  iltttlX
-  tlllXiX
-  iXtiiii
-  lXlilll  
-`.split('\n').map(row=> row.split('')) as CellType[][];
-
-
-const games = [game1,game2];
 
 function findCells(cells: Cell[][], sinkOrSource = SOURCE) {
   const producers = [] as [number, number][];
@@ -447,7 +424,7 @@ export function generateRandomGame(size: number, inputs: number, outputs = 1) {
         kind = 'T'
         break;
       case 2:
-        kind = c.bottom == c.top 
+        kind = c.left == c.top 
           ? 'L'
           : 'I'
         break;
@@ -513,7 +490,7 @@ function Grid() {
 
 
       <label>gridSize
-      <input type="number" value={level} min={5} max={20} step={1} onChange={(e)=>{
+      <input type="number" value={level} min={2} max={20} step={1} onChange={(e)=>{
         setLevel(+e.target.value)
         setMoves(0);
         setGame(generateGame(+e.target.value));  

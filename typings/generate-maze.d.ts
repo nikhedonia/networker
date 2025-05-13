@@ -3,8 +3,8 @@ declare module 'generate-maze' {
     : {
       x: number, 
       y: number,
-      left: number,
-      right: number 
+      left: boolean,
+      right: boolean 
       top:boolean, 
       bottom: boolean
     }[][]
