@@ -11,104 +11,161 @@ export type Cell = {
   connected: boolean
 };
 
-const CellComponent = (props: Cell) => {
-  switch(props.kind.toUpperCase()) {
-    case 'X': return (
-      <svg viewBox="0 0 3 3" width="3em" height="3em" style={{transition: '0.2s ease-in all', transform: `rotate(${props.rotation*90}deg)`}}>
-        <rect x={1} y={1} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'red',  
-          }}
-        ></rect>
 
-        <rect x={1} y={2} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
-      </svg>
-    )
+const CellX = (props: Cell) => (
+  <>
+    <rect x={1} y={1} width={1} height={1} 
+      style={{
+        stroke: 'white',
+        strokeWidth: 0.1,
+        fill: props.connected ? 'green' : 'red',  
+      }}/>
 
-    case 'L': return (
-      <svg viewBox="0 0 3 3" width="3em" height="3em"style={{transition: '0.2s ease-in all', transform: `rotate(${props.rotation*90}deg)`}}>
-        <rect x={1} y={0} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
+    <rect x={1} y={2} width={1} height={1} 
+      style={{
+        stroke: 'white',
+        strokeWidth: 0.1,
+        fill: props.connected ? 'green' : 'black',  
+    }}/>
+  </>
+)
 
-        <rect x={1} y={1} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
+const CellL = (props: Cell) => (
+  <>
+    <rect x={1} y={0} width={1} height={1} 
+      style={{
+        stroke: 'white',
+        strokeWidth: 0.1,
+        fill: props.connected ? 'green' : 'black',  
+      }}
+    ></rect>
 
-        <rect x={2} y={1} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
-      </svg>
-    )
+    <rect x={1} y={1} width={1} height={1} 
+      style={{
+        stroke: 'white',
+        strokeWidth: 0.1,
+        fill: props.connected ? 'green' : 'black',  
+      }}
+    ></rect>
 
-    case 'I': return (
-      <svg viewBox="0 0 3 3" width="3em" height="3em"  style={{transition: '0.2s ease-in all', transform: `rotate(${props.rotation*90}deg)`}}>
-        <rect x={1} y={0} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
+    <rect x={2} y={1} width={1} height={1} 
+      style={{
+        stroke: 'white',
+        strokeWidth: 0.1,
+        fill: props.connected ? 'green' : 'black',  
+      }}
+    ></rect>
+  </>
+)
 
-        <rect x={1} y={1} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
+const CellI = (props: Cell) => (
+  <>
+    <rect x={1} y={0} width={1} height={1} 
+    style={{
+      stroke: 'white',
+      strokeWidth: 0.1,
+      fill: props.connected ? 'green' : 'black',  
+    }}
+    ></rect>
 
-        <rect x={1} y={2} width={1} height={1} 
-          style={{
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
-      </svg>
-    )
+    <rect x={1} y={1} width={1} height={1} 
+    style={{
+      stroke: 'white',
+      strokeWidth: 0.1,
+      fill: props.connected ? 'green' : 'black',  
+    }}
+    ></rect>
 
-    case 'T': return (
-      <svg viewBox="0 0 3 3" width="3em" height="3em"  style={{transition: '0.2s ease-in all', transform: `rotate(${props.rotation*90}deg)`}}>
+    <rect x={1} y={2} width={1} height={1} 
+    style={{
+      stroke: 'white',
+      strokeWidth: 0.1,
+      fill: props.connected ? 'green' : 'black',  
+    }}
+    ></rect>
+  </>
+)
+
+const CellT = (props: Cell) => (
+  <>
         <rect x={0} y={1} width={1} height={1} 
           style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
             fill: props.connected ? 'green' : 'black',  
           }}
         ></rect>
 
         <rect x={1} y={1} width={1} height={1} 
           style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
             fill: props.connected ? 'green' : 'black',  
           }}
         ></rect>
 
         <rect x={2} y={1} width={1} height={1} 
           style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
             fill: props.connected ? 'green' : 'black',  
           }}
         ></rect>
 
         <rect x={1} y={1} width={1} height={1} 
           style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
             fill: props.connected ? 'green' : 'black',  
           }}
         ></rect>
 
         <rect x={1} y={2} width={1} height={1} 
           style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
             fill: props.connected ? 'green' : 'black',  
           }}
         ></rect>
+  </>
+)
 
-      </svg>
-    )
+const CellView = {
+  I: CellI,
+  i: CellI,
+  L: CellL,
+  l: CellL,
+  T: CellT,
+  t: CellT,
+  X: CellX
+} as unknown as Record<CellType, React.FC<Cell>>;
 
-  }
+const CellComponent = (props: Cell) => {
+  const producer = 'LIT'.split('').includes(props.kind);
+  const consumer = 'X' == props.kind;
+  const fill = producer 
+    ? 'blue' 
+    : consumer 
+      ? 'orange' 
+      : 'white';
+
+  const style= {
+    width: '5rem',
+    height: '5rem',
+    transition: '0.2s ease-in all', 
+    display: 'inline-block',
+    transform: `rotate(${props.rotation*90}deg)`
+  };
+
+  const Component = CellView[props.kind];
+
+  return (
+    <svg viewBox="0 0 3 3" style={style}>
+      <Component {...props} />
+      <circle cx={1.5} cy={1.5} r={0.1} style={{fill}}/>
+    </svg>
+  );
+
 }
 
 const game1 = dedent`
@@ -315,12 +372,12 @@ function Grid() {
   
   return (
     <div>
-      <table>
+      <table cellSpacing="0" cellPadding="0" style={{ borderSpacing:0, borderCollapse: 'collapse', border:'none' }}>
         <tbody>
           {game.cells.map( (row,y) => 
-            <tr key={y}>{
+            <tr style={{margin:0,padding:0, }} key={y}>{
               row.map( (cell, x) => 
-                <td  key={x} onClick={()=>{
+                <td style={{margin:0,padding:0, border:'solid 1px black', width:'5rem', height:'5rem'}}   key={x} onClick={()=>{
 
                   const newRow = game.cells[y].with(x, {
                     ...game.cells[y][x],
