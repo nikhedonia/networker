@@ -1816,6 +1816,11 @@ functions-have-names@^1.2.3:
   resolved "https://registry.yarnpkg.com/functions-have-names/-/functions-have-names-1.2.3.tgz#0404fe4ee2ba2f607f0e0ec3c80bae994133b834"
   integrity sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==
 
+generate-maze@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/generate-maze/-/generate-maze-1.1.0.tgz#5554af828df2236d88fd312436aeb39cf13d7811"
+  integrity sha512-QMZ2PB/1EzKkZK9zLA33brVIU5rdN/+fUQok2Z1yaCEoVBd7L7nCF2q2b+o4wlYrqW4xDjTzRIsKfjzwXJXmMA==
+
 get-intrinsic@^1.2.4, get-intrinsic@^1.2.5, get-intrinsic@^1.2.6, get-intrinsic@^1.2.7, get-intrinsic@^1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/get-intrinsic/-/get-intrinsic-1.3.0.tgz#743f0e3b6964a93a5491ed1bffaae054d7f98d01"

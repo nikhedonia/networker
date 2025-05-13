@@ -1,16 +1,23 @@
 "use client";
 import dedent from "dedent";
 import { useState } from "react";
+import generate from 'generate-maze';
 
 
-export type CellType =  "L" | "I" | "T" | "l" | "i" | "t" | 'X';
 
+
+export type CellType =  "L" | "I" | "T" | 'X' | 'P';
+
+export const SINK = 2; 
+export const SOURCE = 1; 
 export type Cell = {
   kind: CellType,
   rotation: number,
+  sinkOrSource: 0 | 1 | 2
   connected: boolean
 };
 
+const centerColors = ['black', 'blue', 'red']
 
 const CellX = (props: Cell) => (
   <>
@@ -18,14 +25,14 @@ const CellX = (props: Cell) => (
       style={{
         stroke: 'white',
         strokeWidth: 0.1,
-        fill: props.connected ? 'green' : 'red',  
+        fill: props.connected ? '#afa' : centerColors[props.sinkOrSource]
       }}/>
 
     <rect x={1} y={2} width={1} height={1} 
       style={{
         stroke: 'white',
         strokeWidth: 0.1,
-        fill: props.connected ? 'green' : 'black',  
+        fill: props.connected ? '#afa' : 'black',  
     }}/>
   </>
 )
@@ -36,7 +43,7 @@ const CellL = (props: Cell) => (
       style={{
         stroke: 'white',
         strokeWidth: 0.1,
-        fill: props.connected ? 'green' : 'black',  
+        fill: props.connected ? '#afa' : 'black',  
       }}
     ></rect>
 
@@ -44,7 +51,7 @@ const CellL = (props: Cell) => (
       style={{
         stroke: 'white',
         strokeWidth: 0.1,
-        fill: props.connected ? 'green' : 'black',  
+        fill: props.connected ? '#afa' : centerColors[props.sinkOrSource] 
       }}
     ></rect>
 
@@ -52,7 +59,7 @@ const CellL = (props: Cell) => (
       style={{
         stroke: 'white',
         strokeWidth: 0.1,
-        fill: props.connected ? 'green' : 'black',  
+        fill: props.connected ? '#afa' : 'black',  
       }}
     ></rect>
   </>
@@ -64,7 +71,7 @@ const CellI = (props: Cell) => (
     style={{
       stroke: 'white',
       strokeWidth: 0.1,
-      fill: props.connected ? 'green' : 'black',  
+      fill: props.connected ? '#afa' : 'black',  
     }}
     ></rect>
 
@@ -72,7 +79,7 @@ const CellI = (props: Cell) => (
     style={{
       stroke: 'white',
       strokeWidth: 0.1,
-      fill: props.connected ? 'green' : 'black',  
+      fill: props.connected ? '#afa' : centerColors[props.sinkOrSource] 
     }}
     ></rect>
 
@@ -80,7 +87,7 @@ const CellI = (props: Cell) => (
     style={{
       stroke: 'white',
       strokeWidth: 0.1,
-      fill: props.connected ? 'green' : 'black',  
+      fill: props.connected ? '#afa' : 'black',  
     }}
     ></rect>
   </>
@@ -92,7 +99,7 @@ const CellT = (props: Cell) => (
           style={{
             stroke: 'white',
             strokeWidth: 0.1,
-            fill: props.connected ? 'green' : 'black',  
+            fill: props.connected ? '#afa' : 'black',  
           }}
         ></rect>
 
@@ -100,7 +107,7 @@ const CellT = (props: Cell) => (
           style={{
             stroke: 'white',
             strokeWidth: 0.1,
-            fill: props.connected ? 'green' : 'black',  
+            fill: props.connected ? '#afa' : centerColors[props.sinkOrSource]
           }}
         ></rect>
 
@@ -108,15 +115,7 @@ const CellT = (props: Cell) => (
           style={{
             stroke: 'white',
             strokeWidth: 0.1,
-            fill: props.connected ? 'green' : 'black',  
-          }}
-        ></rect>
-
-        <rect x={1} y={1} width={1} height={1} 
-          style={{
-            stroke: 'white',
-            strokeWidth: 0.1,
-            fill: props.connected ? 'green' : 'black',  
+            fill: props.connected ? '#afa' : 'black',  
           }}
         ></rect>
 
@@ -124,7 +123,51 @@ const CellT = (props: Cell) => (
           style={{
             stroke: 'white',
             strokeWidth: 0.1,
-            fill: props.connected ? 'green' : 'black',  
+            fill: props.connected ? '#afa' : 'black',  
+          }}
+        ></rect>
+  </>
+)
+
+const CellP = (props: Cell) => (
+  <>
+
+        <rect x={1} y={0} width={1} height={1} 
+          style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
+            fill: props.connected ? '#afa' : 'black',  
+          }}
+        ></rect>
+        <rect x={0} y={1} width={1} height={1} 
+          style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
+            fill: props.connected ? '#afa' : 'black',  
+          }}
+        ></rect>
+
+        <rect x={1} y={1} width={1} height={1} 
+          style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
+            fill: props.connected ? '#afa' : centerColors[props.sinkOrSource] 
+          }}
+        ></rect>
+
+        <rect x={2} y={1} width={1} height={1} 
+          style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
+            fill: props.connected ? '#afa' : 'black',  
+          }}
+        ></rect>
+
+        <rect x={1} y={2} width={1} height={1} 
+          style={{
+            stroke: 'white',
+            strokeWidth: 0.1,
+            fill: props.connected ? '#afa' : 'black',  
           }}
         ></rect>
   </>
@@ -132,21 +175,19 @@ const CellT = (props: Cell) => (
 
 const CellView = {
   I: CellI,
-  i: CellI,
   L: CellL,
-  l: CellL,
   T: CellT,
-  t: CellT,
-  X: CellX
+  X: CellX,
+  P: CellP
 } as unknown as Record<CellType, React.FC<Cell>>;
 
 const CellComponent = (props: Cell) => {
-  const producer = 'LIT'.split('').includes(props.kind);
-  const consumer = 'X' == props.kind;
+  const producer = props.sinkOrSource == SOURCE
+  const consumer = props.sinkOrSource == SINK
   const fill = producer 
     ? 'blue' 
     : consumer 
-      ? 'orange' 
+      ? 'purple' 
       : 'white';
 
   const style= {
@@ -162,7 +203,7 @@ const CellComponent = (props: Cell) => {
   return (
     <svg viewBox="0 0 3 3" style={style}>
       <Component {...props} />
-      <circle cx={1.5} cy={1.5} r={0.1} style={{fill}}/>
+      <circle cx={1.5} cy={1.5} r={0.2} style={{fill}}/>
     </svg>
   );
 
@@ -190,12 +231,12 @@ const game2 = dedent`
 
 const games = [game1,game2];
 
-function findCells(cells: Cell[][], kind = ['L','I','T']) {
+function findCells(cells: Cell[][], sinkOrSource = SOURCE) {
   const producers = [] as [number, number][];
   
   
   cells.forEach( (row, y) => row.forEach( (cell, x) => {
-    if( kind.includes(cell.kind)) {
+    if( cell.sinkOrSource == sinkOrSource) {
       producers.push([x,y]);
     }
   }));
@@ -210,7 +251,6 @@ function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]): [numbe
     return []
   }
 
-  console.log({cell});
 
   switch(cell.kind.toUpperCase()) {
     case "L":
@@ -259,33 +299,42 @@ function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]): [numbe
             [x-1, y]
           ];
       }
-    case "T":
-      switch(cell.rotation%4) {
-        case 0: 
+      case "T":
+        switch(cell.rotation%4) {
+          case 0: 
+            return [
+              [x-1, y],
+              [x+1, y],
+              [x, y+1],
+            ];
+          case 1:
+            return [
+              [x-1, y],
+              [x, y-1],
+              [x, y+1],
+            ];
+          case 2:
+            return [
+              [x-1, y],
+              [x+1, y],
+              [x, y-1],
+            ];
+          case 3:
+            return [
+              [x+1, y],
+              [x, y-1],
+              [x, y+1],
+            ];
+        }
+
+        case "P":
           return [
             [x-1, y],
             [x+1, y],
-            [x, y+1],
-          ];
-        case 1:
-          return [
-            [x-1, y],
             [x, y-1],
             [x, y+1],
           ];
-        case 2:
-          return [
-            [x-1, y],
-            [x+1, y],
-            [x, y-1],
-          ];
-        case 3:
-          return [
-            [x+1, y],
-            [x, y-1],
-            [x, y+1],
-          ];
-      }
+
     default:
     case "X": 
       switch(cell.rotation%4) {
@@ -313,15 +362,13 @@ function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]): [numbe
 function findConnected(cells: Cell[][], [x,y]: [number,number]) {
   return findPossiblyConnected(cells, [x,y]).filter( ([x1, y1]) => {
     const connectable = findPossiblyConnected(cells, [x1, y1]);
-    console.log({p: [x,y], connectable});
     return connectable?.find( ([x2, y2]) => `${x2}-${y2}` == `${x}-${y}` )
   }) as [number,number][]
 }
 
 function floodFill(cells: Cell[][]) {
-  const todo = findCells(cells, 'LIT'.split(''));
+  const todo = findCells(cells, 1);
 
-  console.log({todo});
   const connected = new Set<string>([])
 
   for (const [x, y] of todo) {
@@ -331,7 +378,6 @@ function floodFill(cells: Cell[][]) {
     connected.add(`${x}-${y}`);
 
     const next = findConnected(cells, [x,y]);
-    console.log({next});
     next.forEach(x => {
       todo.push(x); 
     })
@@ -343,7 +389,7 @@ function floodFill(cells: Cell[][]) {
 function validateGame(cells: Cell[][]) {
 
   const connected = floodFill(cells);
-  const consumers = findCells(cells, ['X']);
+  const consumers = findCells(cells, 2);
 
   const done = consumers.every( ([x, y]) => connected.has(`${x}-${y}`));
   return {
@@ -353,19 +399,83 @@ function validateGame(cells: Cell[][]) {
   }
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  return arr.sort(() => Math.random() - 0.5);
+}
 
-export function generateGame (i: number) {
-  const game = games[i%games.length].map(row => row.map(k => ({
-    kind: k,
-    rotation: 0,
-    connected: false,
-  }))) as Cell[][];
+function randomPoint(n:number) {
+  return [Math.floor(Math.random()*n), Math.floor(Math.random()*n)]
+}
 
+export function generateRandomGame(size: number, inputs: number, outputs = 1) {
+  
+  const maze = generate(size,size, true, Math.round(Math.random()*100000) );
+
+  console.log({maze})
+  const sinksArray = 
+    shuffle(maze
+      .flatMap(x => x))
+      .map(x => ({...x, edges: (+x.bottom + +x.left + +x.right + +x.top) }))
+      .sort( (a,b) => a.edges - b.edges)
+      .slice(0, inputs);
+
+
+  const sinks = new Set(sinksArray.map(n=>`${n.x}-${n.y}`));
+
+  console.log({sinksArray, inputs});
+
+  const sources = new Set<string>([]);
+
+  while (sources.size < outputs) {
+    const [x,y] = randomPoint(size);
+    if (!sinks.has(`${x}-${y}`)) {
+      sources.add(`${x}-${y}`);
+    }
+  }
+
+  return maze.map( row => row.map(c => {
+    const isSink = sinks.has(`${c.x}-${c.y}`);
+    const isSource = sources.has(`${c.x}-${c.y}`);
+    const edges = (+c.bottom + +c.left + +c.right + +c.top); 
+    let kind = 'P';
+
+    switch (edges) {
+      case 1: 
+        kind = 'X'; 
+        break;
+      case 3:
+        kind = 'T'
+        break;
+      case 2:
+        kind = c.bottom == c.top 
+          ? 'L'
+          : 'I'
+        break;
+    }
+
+    return {
+      kind,
+      sinkOrSource: +isSink * 2 + +isSource, 
+      rotation: 0,
+      connected: isSource
+    }
+  })) as Cell[][]
+  
+  
+}
+
+
+export function generateGame (n: number) {
+
+  const game = generateRandomGame(n, n*2, 1);
+  console.log({game});
   return validateGame(game);
 }
 
 function Grid() {
-  const [level, setLevel] = useState(0);
+  
+  const [level, setLevel] = useState(5);
+
   const [game,setGame] = useState(generateGame(level));
   const [moves, setMoves] = useState(0);
 
@@ -392,15 +502,23 @@ function Grid() {
             )}</tr>
           )}</tbody>
       </table>
-      <div> connect green pipes to red sinks; Click a pipe to rotate</div>
+      <div> connect #afa pipes to red sinks; Click a pipe to rotate</div>
       <div> complete: {game.done? 'true' : 'false'}</div>
       <div>moves: {moves}</div>
+
       <button onClick={()=>{
-        const next = (level+1) % games.length;
-        setLevel(next)
         setMoves(0);
-        setGame(generateGame(next))  
-      }}>Next Level</button>
+        setGame(generateGame(level));  
+      }}>New Game</button>
+
+
+      <label>gridSize
+      <input type="number" value={level} min={5} max={20} step={1} onChange={(e)=>{
+        setLevel(+e.target.value)
+        setMoves(0);
+        setGame(generateGame(+e.target.value));  
+      }} /></label>
+
    </div>
   );
 }
