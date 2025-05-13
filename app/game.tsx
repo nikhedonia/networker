@@ -119,6 +119,20 @@ const game1 = dedent`
   ltiiX  
 `.split('\n').map(row=> row.split('')) as CellType[][];
 
+
+const game2 = dedent`
+  IXlXtil
+  lttXllX
+  Xlliltl
+  iltttlX
+  tlllXiX
+  iXtiiii
+  lXlilll  
+`.split('\n').map(row=> row.split('')) as CellType[][];
+
+
+const games = [game1,game2];
+
 function findCells(cells: Cell[][], kind = ['L','I','T']) {
   const producers = [] as [number, number][];
   
@@ -283,8 +297,8 @@ function validateGame(cells: Cell[][]) {
 }
 
 
-export function generateGame () {
-  const game = game1.map(row => row.map(k => ({
+export function generateGame (i: number) {
+  const game = games[i%games.length].map(row => row.map(k => ({
     kind: k,
     rotation: 0,
     connected: false,
@@ -294,8 +308,11 @@ export function generateGame () {
 }
 
 function Grid() {
-  const [game, setGame] = useState(generateGame);
+  const [level, setLevel] = useState(0);
+  const [game,setGame] = useState(generateGame(level));
   const [moves, setMoves] = useState(0);
+
+  
   return (
     <div>
       <table>
@@ -319,8 +336,14 @@ function Grid() {
           )}</tbody>
       </table>
       <div> connect green pipes to red sinks; Click a pipe to rotate</div>
-      <div>complete: {game.done? 'true' : 'false'}</div>
+      <div> complete: {game.done? 'true' : 'false'}</div>
       <div>moves: {moves}</div>
+      <button onClick={()=>{
+        const next = (level+1) % games.length;
+        setLevel(next)
+        setMoves(0);
+        setGame(generateGame(next))  
+      }}>Next Level</button>
    </div>
   );
 }
