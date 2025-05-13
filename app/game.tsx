@@ -294,6 +294,7 @@ export function generateGame () {
 
 function Grid() {
   const [game, setGame] = useState(generateGame);
+  const [moves, setMoves] = useState(0);
   return (
     <div>
       <table>
@@ -309,14 +310,16 @@ function Grid() {
                   } as Cell);
                   const newCells = game.cells.with(y, newRow);
                   setGame(validateGame(newCells));
-
+                  setMoves(moves+1);
                 }}>
                   <CellComponent {...cell} connected={game.connected.has(`${x}-${y}`)} />
               </td>
             )}</tr>
           )}</tbody>
       </table>
-      <div>done: {game.done? 'true' : 'false'}</div>
+      <div> connect green pipes to red sinks; Click a pipe to rotate</div>
+      <div>complete: {game.done? 'true' : 'false'}</div>
+      <div>moves: {moves}</div>
    </div>
   );
 }
