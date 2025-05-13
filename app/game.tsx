@@ -132,7 +132,7 @@ function findCells(cells: Cell[][], kind = ['L','I','T']) {
   return producers;
 }
 
-function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]) {
+function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]): [number,number][] {
   const cell = cells?.[y]?.[x];
 
   if (!cell) {
@@ -236,6 +236,7 @@ function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]) {
           ];
       }
   }
+  return [];
 }
 
 function findConnected(cells: Cell[][], [x,y]: [number,number]) {
