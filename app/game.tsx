@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import generate from 'generate-maze';
 
 
@@ -459,6 +459,18 @@ function Grid() {
   const [game,setGame] = useState(()=>generateGame(level));
   const [moves, setMoves] = useState(0);
 
+  const [time, setTime] = useState(0);
+
+  useEffect(()=>{
+    const h = setInterval(()=>setTime(t=>t+1), 1000);
+    return ()=>clearInterval(h);
+  }, []);
+
+  useEffect(()=>{
+    if (game.done) 
+      setGame(generateGame(level));
+  },[level, game.done])
+
   
   return (
     <div>
@@ -488,14 +500,17 @@ function Grid() {
 
       <button onClick={()=>{
         setMoves(0);
-        setGame(generateGame(level));  
+        setGame(generateGame(level));
+        setTime(0);  
       }}>New Game</button>
 
+      <div>time: {time}s</div>
 
       <label>gridSize
       <input type="number" value={level} min={2} max={20} step={1} onChange={(e)=>{
         setLevel(+e.target.value)
         setMoves(0);
+        setTime(0);  
         setGame(generateGame(+e.target.value));  
       }} /></label>
 
