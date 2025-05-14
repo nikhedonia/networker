@@ -466,8 +466,9 @@ function getSeedFromURL() {
 export function generateGame (n = 15, name = "server") {
   const seed = stringHash(name);
   const size = Math.floor(n/3);
-  console.log({seed})
-  const game = generateRandomGame(seed, size, n);
+  const inputs = size + Math.floor(size/2)*(n%3);
+  console.log({seed, n, size, inputs})
+  const game = generateRandomGame(seed, size, inputs);
   return validateGame(game);
 }
 
