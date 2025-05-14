@@ -190,8 +190,8 @@ const CellComponent = (props: Cell) => {
       : 'white';
 
   const style= {
-    width: '5rem',
-    height: '5rem',
+    width: '100%',
+    height: '100%',
     transition: '0.2s ease-in all', 
     display: 'inline-block',
     transform: `rotate(${props.rotation*90}deg)`
@@ -476,46 +476,60 @@ function Grid() {
 
   
   return (
-    <div>
-      <table cellSpacing="0" cellPadding="0" style={{ borderSpacing:0, borderCollapse: 'collapse', border:'none' }}>
-        <tbody>
-          {game.cells.map( (row,y) => 
-            <tr style={{margin:0,padding:0, }} key={y}>{
-              row.map( (cell, x) => 
-                <td style={{margin:0,padding:0, border:'solid 1px black', width:'5rem', height:'5rem'}}   key={x} onClick={()=>{
+    <div className="max-w-md" style={{display: 'flex', margin:'auto',flexDirection:'column'}}>
 
-                  const newRow = game.cells[y].with(x, {
-                    ...game.cells[y][x],
-                    rotation: (game.cells[y][x].rotation + 1)
-                  } as Cell);
-                  const newCells = game.cells.with(y, newRow);
-                  setGame(validateGame(newCells));
-                  setMoves(moves+1);
-                }}>
-                  <CellComponent {...cell} connected={game.connected.has(`${x}-${y}`)} />
-              </td>
-            )}</tr>
-          )}</tbody>
-      </table>
-      <div> connect #afa pipes to red sinks; Click a pipe to rotate</div>
-      <div> complete: {game.done? 'true' : 'false'}</div>
-      <div>moves: {moves}</div>
+      
+      <div style={{display:'flex', justifyContent:'space-between'}}>
+        <button onClick={()=>{
+          setMoves(0);
+          setGame(generateGame(level));
+          setTime(0);  
+        }}>New Game</button>
 
-      <button onClick={()=>{
-        setMoves(0);
-        setGame(generateGame(level));
-        setTime(0);  
-      }}>New Game</button>
+        <label> Difficulty:
+          <input type="range" value={level} min={2} max={20} step={1} onChange={(e)=>{
+            setLevel(+e.target.value)
+            setMoves(0);
+            setTime(0);  
+            setGame(generateGame(+e.target.value));  
+          }} /></label>
+        </div>
 
-      <div>time: {time}s</div>
 
-      <label>gridSize
-      <input type="number" value={level} min={2} max={20} step={1} onChange={(e)=>{
-        setLevel(+e.target.value)
-        setMoves(0);
-        setTime(0);  
-        setGame(generateGame(+e.target.value));  
-      }} /></label>
+      <div>
+        <table cellSpacing="0" cellPadding="0" style={{ flex:0, borderSpacing:0, borderCollapse: 'collapse', border:'none' }}>
+          <tbody>
+            {game.cells.map( (row,y) => 
+              <tr style={{margin:0,padding:0, }} key={y}>{
+                row.map( (cell, x) => 
+                  <td style={{margin:0,padding:0, border:'solid 1px black', }}   key={x} onClick={()=>{
+
+                    const newRow = game.cells[y].with(x, {
+                      ...game.cells[y][x],
+                      rotation: (game.cells[y][x].rotation + 1)
+                    } as Cell);
+                    const newCells = game.cells.with(y, newRow);
+                    setGame(validateGame(newCells));
+                    setMoves(moves+1);
+                  }}>
+                    <CellComponent {...cell} connected={game.connected.has(`${x}-${y}`)} />
+                </td>
+              )}</tr>
+            )}</tbody>
+        </table>
+      </div>
+
+      <div style={{display:'flex', justifyContent:'space-between'}}>      
+        <div>time: {time}s</div>
+        <div>moves: {moves}</div>
+      </div>
+
+      <div> connect green pipes to red sinks; Click a pipe to rotate</div>
+
+
+
+
+
 
    </div>
   );
