@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import generate from 'generate-maze';
-
+import sillyName from 'sillyname';
+import stringHash from 'string-hash';
+import Rand from 'rand-seed';
 
 
 
@@ -366,7 +368,7 @@ function floodFill(cells: Cell[][]) {
 function validateGame(cells: Cell[][]) {
 
   const connected = floodFill(cells);
-  const consumers = findCells(cells, 2);
+  const consumers = findCells(cells, SINK);
 
   const done = consumers.every( ([x, y]) => connected.has(`${x}-${y}`));
   return {
@@ -376,17 +378,20 @@ function validateGame(cells: Cell[][]) {
   }
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  return arr.toSorted(() => Math.random() - 0.5);
-}
-
-function randomPoint(n:number) {
-  return [Math.floor(Math.random()*n), Math.floor(Math.random()*n)]
-}
-
-export function generateRandomGame(size: number, inputs: number, outputs = 1) {
+function shuffle<T>(rand: Rand, arr: T[]): T[] {
   
-  const maze = generate(size, size, true, Math.round(Math.random()*100000) )
+  return arr.toSorted(() => rand.next() - 0.5);
+}
+
+function randomPoint(rand: Rand, n:number) {
+  return [Math.floor(rand.next()*n), Math.floor(rand.next()*n)]
+}
+
+export function generateRandomGame(seed: number, size: number, inputs: number, outputs = 1) {
+
+  const rand = new Rand(seed.toString());
+  
+  const maze = generate(size, size, true, seed)
     .map(row => row.map(c=>({
       ...c, 
       edges: +!c.bottom + +!c.left + +!c.right + +!c.top
@@ -394,7 +399,7 @@ export function generateRandomGame(size: number, inputs: number, outputs = 1) {
 
   console.log({maze})
   const sinksArray = 
-    shuffle(maze
+    shuffle(rand, maze
       .flatMap(x => x))
       .sort( (a,b) => a.edges - b.edges)
       .slice(0, inputs);
@@ -402,12 +407,11 @@ export function generateRandomGame(size: number, inputs: number, outputs = 1) {
 
   const sinks = new Set(sinksArray.map(n=>`${n.x}-${n.y}`));
 
-  console.log({sinksArray, inputs});
 
   const sources = new Set<string>([]);
 
   while (sources.size < outputs) {
-    const [x,y] = randomPoint(size);
+    const [x,y] = randomPoint(rand,size);
     if (!sinks.has(`${x}-${y}`)) {
       sources.add(`${x}-${y}`);
     }
@@ -444,33 +448,56 @@ export function generateRandomGame(size: number, inputs: number, outputs = 1) {
   
 }
 
+function getSeedFromURL() {
+  if(typeof window == 'undefined') {
+    return {level:15, name: 'server-side'}
+  }
+  const [level, ...parts] = window.location.hash.split('#').at(-1)?.split('-') || [15, sillyName().split(' ')];
+  const name = parts.join('-');
 
-export function generateGame (n: number) {
+  console.log({level,name});
+  return {
+    level: level != '' ? level : 15, 
+    name: name != '' ? name : sillyName()
+  }
+}
 
-  const game = generateRandomGame(n, n*2, 1);
-  console.log({game});
+
+export function generateGame (n = 15, name = "server") {
+  const seed = stringHash(name);
+  const size = Math.floor(n/3);
+  console.log({seed})
+  const game = generateRandomGame(seed, size, n);
   return validateGame(game);
 }
 
 function Grid() {
-  
-  const [level, setLevel] = useState(5);
+  const [{level, name}, setSettings] = useState(getSeedFromURL);
 
-  const [game,setGame] = useState(()=>generateGame(level));
+  const [game, setGame] = useState(() => generateGame(+level, name));
+
   const [moves, setMoves] = useState(0);
-
   const [time, setTime] = useState(0);
+
+  const setNewLocation = (level: number, name = sillyName()) => {
+    window.location.hash = `${level}-${name.replace(/ /g,'-')}`;
+    setSettings({level, name});
+  }
 
   useEffect(()=>{
     const h = setInterval(()=>setTime(t=>t+1), 1000);
-    return ()=>clearInterval(h);
+    return () => clearInterval(h);
   }, []);
+
+  useEffect(()=>{
+    setGame(generateGame(+level, name));
+  }, [level, name]);
 
   useEffect(()=>{
     if (game.done) {
       setTime(0);
       setMoves(0);
-      setGame(generateGame(level));
+      setNewLocation(+level);
     }
   },[level, game.done])
 
@@ -482,16 +509,16 @@ function Grid() {
       <div style={{display:'flex', justifyContent:'space-between'}}>
         <button onClick={()=>{
           setMoves(0);
-          setGame(generateGame(level));
+          setNewLocation(+level);
           setTime(0);  
         }}>New Game</button>
 
-        <label> Difficulty:
-          <input type="range" value={level} min={2} max={20} step={1} onChange={(e)=>{
-            setLevel(+e.target.value)
+        <label> Difficulty: {level}
+          <input type="range" value={level} min={15} max={60} step={1} onChange={(e)=>{
+            const nextLevel = Math.max(15, +e.target.value);
+            setNewLocation(nextLevel);
             setMoves(0);
             setTime(0);  
-            setGame(generateGame(+e.target.value));  
           }} /></label>
         </div>
 
