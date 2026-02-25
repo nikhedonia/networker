@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import generate from 'generate-maze';
 import sillyName from 'sillyname';
 import stringHash from 'string-hash';
 import Rand from 'rand-seed';
+import { analytics } from './analytics';
 
 
 
@@ -223,7 +224,7 @@ function findCells(cells: Cell[][], sinkOrSource = SOURCE) {
   return producers;
 }
 
-function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]): [number,number][] {
+export function findPossiblyConnected(cells: Cell[][], [x, y]: [number,number]): [number,number][] {
   const cell = cells?.[y]?.[x];
 
   if (!cell) {
@@ -365,7 +366,7 @@ function floodFill(cells: Cell[][]) {
   return connected;
 }
 
-function validateGame(cells: Cell[][]) {
+export function validateGame(cells: Cell[][]) {
 
   const connected = floodFill(cells);
   const consumers = findCells(cells, SINK);
@@ -472,6 +473,55 @@ export function generateGame (n = 15, name = "server") {
   return validateGame(game);
 }
 
+type CompletionProps = {
+  time: number;
+  moves: number;
+  level: number;
+  onNewGame: () => void;
+  onNextLevel: () => void;
+};
+
+function CompletionScreen({ time, moves, level, onNewGame, onNextLevel }: CompletionProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-6 max-w-sm w-full mx-4">
+        <div className="text-5xl">🎉</div>
+        <h2 className="text-2xl font-bold text-green-600">Puzzle Solved!</h2>
+        <div className="flex gap-8 text-center">
+          <div>
+            <div className="text-3xl font-semibold">{time}s</div>
+            <div className="text-sm text-gray-500">Time</div>
+          </div>
+          <div>
+            <div className="text-3xl font-semibold">{moves}</div>
+            <div className="text-sm text-gray-500">Moves</div>
+          </div>
+          <div>
+            <div className="text-3xl font-semibold">{level}</div>
+            <div className="text-sm text-gray-500">Difficulty</div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 w-full">
+          {level < 60 && (
+            <button
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-colors"
+              onClick={onNextLevel}
+            >
+              Next Level 🚀
+            </button>
+          )}
+          <button
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors"
+            onClick={onNewGame}
+          >
+            Play Again
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Grid() {
   const [{level, name}, setSettings] = useState(getSeedFromURL);
 
@@ -479,47 +529,76 @@ function Grid() {
 
   const [moves, setMoves] = useState(0);
   const [time, setTime] = useState(0);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const completionStatsRef = useRef({ time: 0, moves: 0 });
 
-  const setNewLocation = (level: number, name = sillyName()) => {
-    window.location.hash = `${level}-${name.replace(/ /g,'-')}`;
-    setSettings({level, name});
-  }
+  const setNewLocation = (nextLevel: number, nextName = sillyName()) => {
+    window.location.hash = `${nextLevel}-${nextName.replace(/ /g,'-')}`;
+    setSettings({ level: nextLevel, name: nextName });
+  };
 
+  // Track page view on mount
+  useEffect(() => {
+    analytics.pageView();
+  }, []);
+
+  // Timer – pauses while the completion screen is showing
   useEffect(()=>{
+    if (showCompletion) return;
     const h = setInterval(()=>setTime(t=>t+1), 1000);
     return () => clearInterval(h);
-  }, []);
+  }, [showCompletion]);
 
   useEffect(()=>{
     setGame(generateGame(+level, name));
+    analytics.gameStarted(+level, name);
+    setTime(0);
+    setMoves(0);
+    setShowCompletion(false);
   }, [level, name]);
 
   useEffect(()=>{
-    if (game.done) {
-      setTime(0);
-      setMoves(0);
-      setNewLocation(+level);
+    if (game.done && !showCompletion) {
+      completionStatsRef.current = { time, moves };
+      analytics.gameCompleted(+level, name, time, moves);
+      setShowCompletion(true);
     }
-  },[level, game.done])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.done]);
 
-  
+  const handleNewGame = () => {
+    setNewLocation(+level);
+  };
+
+  const handleNextLevel = () => {
+    const nextLevel = Math.min(60, +level + 3);
+    analytics.difficultyChanged(+level, nextLevel);
+    setNewLocation(nextLevel);
+  };
+
   return (
     <div className="max-w-md" style={{display: 'flex', margin:'auto',flexDirection:'column'}}>
 
-      
+      {showCompletion && (
+        <CompletionScreen
+          time={completionStatsRef.current.time}
+          moves={completionStatsRef.current.moves}
+          level={+level}
+          onNewGame={handleNewGame}
+          onNextLevel={handleNextLevel}
+        />
+      )}
+
       <div style={{display:'flex', justifyContent:'space-between'}}>
         <button onClick={()=>{
-          setMoves(0);
           setNewLocation(+level);
-          setTime(0);  
         }}>New Game</button>
 
         <label> Difficulty: {level}
           <input type="range" value={level} min={15} max={60} step={1} onChange={(e)=>{
             const nextLevel = Math.max(15, +e.target.value);
+            analytics.difficultyChanged(+level, nextLevel);
             setNewLocation(nextLevel);
-            setMoves(0);
-            setTime(0);  
           }} /></label>
         </div>
 
@@ -539,6 +618,7 @@ function Grid() {
                     const newCells = game.cells.with(y, newRow);
                     setGame(validateGame(newCells));
                     setMoves(moves+1);
+                    analytics.moveMade(+level);
                   }}>
                     <CellComponent {...cell} connected={game.connected.has(`${x}-${y}`)} />
                 </td>
@@ -554,15 +634,9 @@ function Grid() {
 
       <div> connect green pipes to red sinks; Click a pipe to rotate</div>
 
-
-
-
-
-
    </div>
   );
 }
-
 
 export function Game() {
   return (
