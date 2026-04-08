@@ -4,41 +4,39 @@
   "private": true,
   "homepage": "https://nikhedonia.github.io/networker",
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
+    "dev": "expo start --web",
+    "build": "npx expo export -p web",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "export": "next export",
-    "deploy": "next build && touch out/.nojekyll && gh-pages -t -d out"
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@expo/metro-runtime": "^55.0.9",
     "dedent": "^1.7.1",
+    "expo": "^55.0.12",
     "generate-maze": "^1.1.0",
-    "gh-pages": "^6.3.0",
-    "next": "16.1.6",
     "rand-seed": "^3.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-native": "^0.85.0",
+    "react-native-safe-area-context": "^5.7.0",
+    "react-native-web": "^0.21.2",
     "sillyname": "^0.1.0",
     "string-hash": "^1.1.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-native": "^0.72.8",
     "@types/string-hash": "^1.1.3",
     "@vitejs/plugin-react": "^4.4.1",
+    "babel-preset-expo": "^55.0.16",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
     "jsdom": "^26.1.0",
-    "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.4"
-  }
+  },
+  "main": "index.ts"
 }
