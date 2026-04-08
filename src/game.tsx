@@ -14,6 +14,7 @@ import sillyName from 'sillyname';
 import stringHash from 'string-hash';
 import Rand from 'rand-seed';
 import { analytics } from './analytics';
+import { saveSession } from './storage';
 
 // ─── Types & constants ──────────────────────────────────────────────────────────
 export type CellType = "L" | "I" | "T" | 'X' | 'P';
@@ -336,16 +337,30 @@ function CompletionScreen({ time, moves, level, onNewGame, onNextLevel }: Comple
 }
 
 // ─── Grid ─────────────────────────────────────────────────────────────────────────
-function Grid() {
-  const [{ level, name }, setSettings] = useState(getSeedFromURL);
+type GridProps = {
+  /** In race mode: no URL hash, no modal, fires onPuzzleComplete */
+  raceMode?: boolean;
+  initialLevel?: number;
+  initialName?: string;
+  onPuzzleComplete?: (time: number, moves: number, level: number) => void;
+  onMenu?: () => void;
+};
+
+export function Grid({ raceMode, initialLevel, initialName, onPuzzleComplete, onMenu }: GridProps = {}) {
+  const [{ level, name }, setSettings] = useState<{ level: number | string; name: string }>(() => {
+    if (raceMode && initialLevel !== undefined && initialName !== undefined) {
+      return { level: initialLevel, name: initialName };
+    }
+    return getSeedFromURL();
+  });
   const [game, setGame] = useState(() => generateGame(+level, name));
   const [moves, setMoves] = useState(0);
   const [time, setTime] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const completionStatsRef = useRef({ time: 0, moves: 0 });
+  const puzzleCompletedRef = useRef(false);
 
   const setNewLocation = (nextLevel: number, nextName = sillyName()) => {
-    // Track abandonment if the user quits a started-but-unsolved game
     if (moves > 0 && !game.done) {
       analytics.puzzleAbandoned(+level, name, time, moves);
     }
@@ -353,13 +368,12 @@ function Grid() {
     setSettings({ level: nextLevel, name: nextName });
   };
 
-  useEffect(() => { /* pageView is fired in App.tsx */ }, []);
-
   useEffect(() => {
-    if (showCompletion) return;
+    // Pause timer when puzzle is done (either mode)
+    if (showCompletion || game.done) return;
     const h = setInterval(() => setTime(t => t + 1), 1000);
     return () => clearInterval(h);
-  }, [showCompletion]);
+  }, [showCompletion, game.done]);
 
   useEffect(() => {
     setGame(generateGame(+level, name));
@@ -367,18 +381,35 @@ function Grid() {
     setTime(0);
     setMoves(0);
     setShowCompletion(false);
+    puzzleCompletedRef.current = false;
   }, [level, name]);
 
   useEffect(() => {
-    if (game.done && !showCompletion) {
-      completionStatsRef.current = { time, moves };
-      analytics.gameCompleted(+level, name, time, moves);
+    if (!game.done) return;
+    if (puzzleCompletedRef.current) return;
+    puzzleCompletedRef.current = true;
+    completionStatsRef.current = { time, moves };
+    analytics.gameCompleted(+level, name, time, moves);
+
+    if (raceMode) {
+      onPuzzleComplete?.(time, moves, +level);
+    } else {
+      // Save freeplay stat
+      saveSession({
+        id: `${Date.now()}`,
+        mode: 'freeplay',
+        startedAt: Date.now(),
+        startDifficulty: +level,
+        autoIncrease: false,
+        puzzles: [{ difficulty: +level, timeSeconds: time, moves }],
+      });
       setShowCompletion(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.done]);
 
   const handleCellPress = (x: number, y: number) => {
+    if (game.done) return; // don't allow moves after solved
     const newRow = game.cells[y].with(x, {
       ...game.cells[y][x],
       rotation: game.cells[y][x].rotation + 1,
@@ -390,81 +421,156 @@ function Grid() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.container}>
-        {showCompletion && (
-          <CompletionScreen
-            time={completionStatsRef.current.time}
-            moves={completionStatsRef.current.moves}
-            level={+level}
-            onNewGame={() => setNewLocation(+level)}
-            onNextLevel={() => {
-              const nextLevel = Math.min(60, +level + 3);
+    <View style={styles.screen}>
+      {/* ── Header bar ── always visible, outside the scroll view */}
+      {!raceMode && (
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            {onMenu && (
+              <Pressable style={styles.headerBtn} onPress={onMenu}>
+                <Text style={styles.headerBtnText}>← Menu</Text>
+              </Pressable>
+            )}
+          </View>
+          <Text style={styles.headerTitle}>🔗 Networker</Text>
+          <View style={styles.headerRight}>
+            <Pressable style={styles.headerBtn} onPress={() => setNewLocation(+level)}>
+              <Text style={styles.headerBtnText}>New Game</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* ── Difficulty slider ── outside scroll, below header */}
+      {!raceMode && (
+        <View style={styles.difficultyBar}>
+          <Text style={styles.difficultyLabel}>Difficulty: {level}</Text>
+          <WebSlider
+            value={+level}
+            min={15}
+            max={60}
+            step={1}
+            onValueChange={(v) => {
+              const nextLevel = Math.max(15, v);
               analytics.difficultyChanged(+level, nextLevel);
               setNewLocation(nextLevel);
             }}
           />
-        )}
+        </View>
+      )}
 
-        {/* Controls */}
-        <View style={styles.controls}>
-          <Pressable style={styles.newGameBtn} onPress={() => setNewLocation(+level)}>
-            <Text style={styles.newGameText}>New Game</Text>
-          </Pressable>
-          <View style={styles.sliderRow}>
-            <Text style={styles.controlLabel}>Difficulty: {level}</Text>
-            <WebSlider
-              value={+level}
-              min={15}
-              max={60}
-              step={1}
-              onValueChange={(v) => {
-                const nextLevel = Math.max(15, v);
-                analytics.difficultyChanged(+level, nextLevel);
-                setNewLocation(nextLevel);
-              }}
-            />
+      {showCompletion && !raceMode && (
+        <CompletionScreen
+          time={completionStatsRef.current.time}
+          moves={completionStatsRef.current.moves}
+          level={+level}
+          onNewGame={() => setNewLocation(+level)}
+          onNextLevel={() => {
+            const nextLevel = Math.min(60, +level + 3);
+            analytics.difficultyChanged(+level, nextLevel);
+            setNewLocation(nextLevel);
+          }}
+        />
+      )}
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.container}>
+          {/* Game grid
+              key forces full remount (fresh animated values) when a new game loads */}
+          <View key={`${level}-${name}`} style={styles.grid}>
+            {game.cells.map((row, y) => (
+              <View key={y} style={styles.row}>
+                {row.map((cell, x) => (
+                  <Pressable
+                    key={x}
+                    style={styles.cell}
+                    onPress={() => handleCellPress(x, y)}
+                  >
+                    <CellComponent
+                      {...cell}
+                      connected={game.connected.has(`${x}-${y}`)}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ))}
           </View>
-        </View>
 
-        {/* Game grid
-            key forces full remount (fresh animated values) when a new game loads */}
-        <View key={`${level}-${name}`} style={styles.grid}>
-          {game.cells.map((row, y) => (
-            <View key={y} style={styles.row}>
-              {row.map((cell, x) => (
-                <Pressable
-                  key={x}
-                  style={styles.cell}
-                  onPress={() => handleCellPress(x, y)}
-                >
-                  <CellComponent
-                    {...cell}
-                    connected={game.connected.has(`${x}-${y}`)}
-                  />
-                </Pressable>
-              ))}
-            </View>
-          ))}
+          {/* Stats */}
+          <View style={styles.statsBar}>
+            <Text style={styles.statBarText}>⏱ {time}s</Text>
+            <Text style={styles.statBarText}>↩ {moves} moves</Text>
+          </View>
+          {!raceMode && (
+            <Text style={styles.hint}>Connect green pipes to red sinks · Tap a pipe to rotate</Text>
+          )}
         </View>
-
-        {/* Stats */}
-        <View style={styles.statsBar}>
-          <Text style={styles.statBarText}>⏱ {time}s</Text>
-          <Text style={styles.statBarText}>↩ {moves} moves</Text>
-        </View>
-        <Text style={styles.hint}>Connect green pipes to red sinks · Tap a pipe to rotate</Text>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
-export function Game() {
-  return <Grid />;
+export type GameProps = {
+  onMenu?: () => void;
+};
+
+export function Game({ onMenu }: GameProps = {}) {
+  return <Grid onMenu={onMenu} />;
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+
+  // ── Header bar ──
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  headerLeft: { minWidth: 80 },
+  headerRight: { minWidth: 80, alignItems: 'flex-end' },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  headerBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBtnText: {
+    fontWeight: '600',
+    fontSize: 13,
+    color: '#374151',
+  },
+
+  // ── Difficulty slider row ──
+  difficultyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    gap: 8,
+  },
+  difficultyLabel: {
+    fontSize: 13,
+    color: '#6b7280',
+    whiteSpace: 'nowrap',
+  } as object,
+
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -476,34 +582,6 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
   },
-
-  // Controls
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  newGameBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: '#e5e7eb',
-  },
-  newGameText: {
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  sliderRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 180,
-  },
-  controlLabel: {
-    fontSize: 14,
-    whiteSpace: 'nowrap',
-  } as object,
 
   // Grid – collapsed-border equivalent:
   //   container gets top+left border; each cell gets right+bottom border.
